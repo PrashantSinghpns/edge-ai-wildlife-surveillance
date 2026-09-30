@@ -1,0 +1,19 @@
+[Unit]
+Description=Edge AI Wildlife Surveillance
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=edgeai
+Group=edgeai
+WorkingDirectory=/opt/edge-ai-wildlife-surveillance
+Environment="PATH=/opt/edge-ai-wildlife-surveillance/.venv/bin"
+ExecStart=/opt/edge-ai-wildlife-surveillance/.venv/bin/edge-ai-surveillance --config /opt/edge-ai-wildlife-surveillance/config/config.yaml
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
