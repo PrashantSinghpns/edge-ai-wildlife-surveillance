@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+config/config.yaml
+secrets.*
+*.pem
+*.key
+*.crt
+
+# Models and generated artifacts
+models/*.pt
+models/*.onnx
+models/*.tflite
+models/*.engine
+runs/
+artifacts/
+recordings/
+captures/
+*.mp4
+*.avi
+
+# Logs / local data
+logs/
+*.log
+*.db
+*.sqlite
