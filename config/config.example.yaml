@@ -1,0 +1,39 @@
+device:
+  id: edge-camera-01
+  site: demo
+
+camera:
+  # Use 0 for a local USB/CSI camera, a video file path, or an RTSP URL.
+  source: 0
+  width: 1280
+  height: 720
+  reconnect_seconds: 2.0
+
+inference:
+  model: yolov8n.pt
+  confidence: 0.50
+  frame_stride: 2
+  # Optional device examples: cpu, 0, mps
+  device: cpu
+
+policy:
+  # Empty list allows all model classes. For deployment, use an explicit allow-list.
+  labels: []
+  min_confidence: 0.60
+  cooldown_seconds: 10
+
+mqtt:
+  host: localhost
+  port: 1883
+  client_id: edge-camera-01
+  username:
+  password:
+  qos: 1
+  tls:
+    enabled: false
+    ca_file:
+    cert_file:
+    key_file:
+
+monitoring:
+  health_interval_seconds: 30
