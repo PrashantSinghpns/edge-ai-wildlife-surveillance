@@ -1,0 +1,12 @@
+{
+  "event_id": "7f3cb870-5ad7-45e6-91e8-2f512bf2d3cf",
+  "timestamp": "2026-09-30T12:00:00+00:00",
+  "source": "edge-camera-01",
+  "label": "animal",
+  "confidence": 0.92,
+  "bbox": [104.0, 88.0, 322.0, 360.0],
+  "metadata": {
+    "site": "demo",
+    "pipeline": "yolov8"
+  }
+}
