@@ -293,6 +293,8 @@ pytest -q
 ```
 
 The test suite focuses on deterministic components such as configuration parsing, event serialization and policy behavior. Hardware, camera and model tests should be separated as integration tests on target devices.
+<img width="510" height="324" alt="20251226_172110" src="https://github.com/user-attachments/assets/a5aa45a6-bf77-4cb3-8a1c-a5a98af67ee6" />
+<img width="510" height="324" alt="20251223_134838" src="https://github.com/user-attachments/assets/0a56a198-9b8f-4cce-9f1a-0b748145c574" />
 
 ---
 
