@@ -14,8 +14,7 @@ This repository demonstrates an end-to-end engineering pipeline: **camera captur
 > **Portfolio reconstruction:** This repository is an independently developed technical reconstruction based on professional experience building and deploying Edge AI camera systems. It contains **no proprietary source code, customer data, credentials, model weights, deployment coordinates, or confidential intellectual property** from any employer.
 
 ---
-<img width="510" height="324" alt="IMG-20260116-WA0025" src="https://github.com/user-attachments/assets/6ba409c3-d329-400d-813e-8660507726fb" />
-<img width="510" height="324" alt="IMG-20260116-WA0023" src="https://github.com/user-attachments/assets/93c80daf-c79a-482b-b1bb-469a7b6a5cfd" />
+<img width="510" height="324" alt="IMG-20260116-WA0025" src="https://github.com/user-attachments/assets/6ba409c3-d329-400d-813e-8660507726fb" /> <img width="510" height="324" alt="IMG-20260116-WA0023" src="https://github.com/user-attachments/assets/93c80daf-c79a-482b-b1bb-469a7b6a5cfd" />
 
 
 ## Why this project matters
