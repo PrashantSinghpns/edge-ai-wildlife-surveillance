@@ -29,9 +29,13 @@ class SerialGateway:
         if not raw:
             return None
         try:
-            return json.loads(raw)
+            message = json.loads(raw)
+            if not isinstance(message, dict):
+                LOGGER.warning("Ignoring serial payload that is not a JSON object")
+                return None
+            return message
         except json.JSONDecodeError:
-            LOGGER.warning("Ignoring malformed serial payload: %r", raw)
+            LOGGER.warning("Ignoring malformed serial JSON payload")
             return None
 
     def send_command(self, command: dict[str, Any]) -> None:

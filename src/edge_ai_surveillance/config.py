@@ -37,6 +37,8 @@ def load_config(path: str | Path) -> dict[str, Any]:
     with config_path.open("r", encoding="utf-8") as handle:
         data = yaml.safe_load(handle) or {}
 
+    if not isinstance(data, dict):
+        raise ValueError("Configuration must be a YAML mapping")
     data = _expand_env(data)
 
     required = ("device", "camera", "inference", "mqtt", "policy")
@@ -44,4 +46,7 @@ def load_config(path: str | Path) -> dict[str, Any]:
     if missing:
         raise ValueError(f"Missing configuration sections: {', '.join(missing)}")
 
+    for section in required:
+        if not isinstance(data[section], dict):
+            raise ValueError(f"Configuration section {section} must be a mapping")
     return data

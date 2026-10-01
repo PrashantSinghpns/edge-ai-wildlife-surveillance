@@ -7,9 +7,9 @@
 [![CI](https://github.com/PrashantSinghpns/edge-ai-wildlife-surveillance/actions/workflows/ci.yml/badge.svg)](https://github.com/PrashantSinghpns/edge-ai-wildlife-surveillance/actions)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-A production-oriented **Edge AI + IoT surveillance architecture** for real-time wildlife and intrusion monitoring using **Raspberry Pi / Embedded Linux, Python, OpenCV, YOLOv8, ESP32, MQTT, RTSP, TCP/IP, UART, SPI, I2C and Modbus RS-485**.
+A modular **Edge AI + IoT reference implementation** for real-time wildlife and intrusion monitoring using **Raspberry Pi / Embedded Linux, Python, OpenCV, YOLOv8, ESP32, MQTT, RTSP, TCP/IP, UART, SPI, I2C and Modbus RS-485**.
 
-This repository demonstrates an end-to-end engineering pipeline: **camera capture → edge inference → event filtering → telemetry → device control → remote monitoring**.
+This repository demonstrates an end-to-end engineering pipeline: **camera capture → edge inference → event filtering → MQTT telemetry**. MCU control and remote monitoring are integration extensions, not part of the running Python pipeline.
 
 > **Portfolio reconstruction:** This repository is an independently developed technical reconstruction based on professional experience building and deploying Edge AI camera systems. It contains **no proprietary source code, customer data, credentials, model weights, deployment coordinates, or confidential intellectual property** from any employer.
 
@@ -21,7 +21,7 @@ This repository demonstrates an end-to-end engineering pipeline: **camera captur
 
 Remote surveillance systems often operate with limited compute, unreliable connectivity, constrained power budgets and the need for low-latency local decisions. This project demonstrates how those constraints can be handled with a modular edge architecture that keeps inference close to the camera while using lightweight IoT protocols for telemetry and control.
 
-### Representative use cases
+### Representative use cases and integration targets
 
 - Wildlife detection near human settlements
 - Restricted-area intrusion monitoring
@@ -133,6 +133,7 @@ cd edge-ai-wildlife-surveillance
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
+# Windows PowerShell: .\.venv\Scripts\Activate.ps1
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
@@ -198,7 +199,7 @@ Each detection accepted by `EventPolicy` becomes one `DetectionEvent` and is ser
 | `bbox` | array of four numbers | `[x_min, y_min, x_max, y_max]` in pixels relative to the frame passed to inference |
 | `metadata` | object | Context; the pipeline adds `site`, `pipeline`, and `frame_index` |
 
-`frame_index` counts captured frames, including frames skipped by the configured inference stride. The event class defaults `metadata` to an empty object and generates `event_id` and `timestamp` when omitted. It serializes the supplied values; it does not enforce field types, confidence bounds, or bounding-box validity.
+`frame_index` counts captured frames, including frames skipped by the configured inference stride. The event class defaults `metadata` to an empty object and generates `event_id` and `timestamp` when omitted. Event construction validates nonempty source/label strings, finite confidence in [0, 1], four nonnegative ordered xyxy coordinates, and dictionary metadata. Serialization rejects non-finite JSON numbers. Frame-bound checks and application-specific metadata validation remain downstream responsibilities.
 
 The default `yolov8n.pt` model uses its trained class names, such as `dog`; a generic `animal` label or species-specific wildlife labels require an appropriate model or an explicit mapping.
 
@@ -262,7 +263,7 @@ A deployable edge system needs more than model inference. The architecture inclu
 - Configuration-driven behavior
 - Graceful shutdown
 - Linux `systemd` service execution
-- Offline-friendly local event generation
+- Local event construction; no persistent offline queue or delivery guarantee
 - Network and serial troubleshooting
 
 ---
@@ -287,6 +288,8 @@ See [Security](docs/SECURITY.md).
 ---
 
 ## Testing
+
+For checks without model downloads or a camera, install `python -m pip install -e ".[dev]"` and run the tests below. Full hardware/model execution requires the vision extra, a reachable broker, and a compatible camera.
 
 ```bash
 pytest -q

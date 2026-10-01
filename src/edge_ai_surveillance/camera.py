@@ -45,7 +45,9 @@ class CameraSource:
             self.capture.set(self.cv2.CAP_PROP_FRAME_HEIGHT, self.height)
 
         if not self.capture.isOpened():
-            raise RuntimeError(f"Unable to open camera source: {self.source}")
+            self.capture.release()
+            self.capture = None
+            raise RuntimeError("Unable to open configured camera source")
 
     def read(self):
         ok, frame = self.capture.read()

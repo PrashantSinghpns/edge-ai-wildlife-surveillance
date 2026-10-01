@@ -20,9 +20,9 @@ Primary goals:
 3. YOLO inference returns class labels, confidence values and bounding boxes.
 4. EventPolicy applies class filtering, confidence thresholds and cooldown.
 5. Accepted detections become normalized DetectionEvent objects.
-6. Events are published over MQTT and recorded locally if desired.
+6. Events are published over MQTT; Python logs record event summaries. Persistent JSON storage is not implemented.
 7. Device health is published on a separate topic.
-8. ESP32/STM32 nodes can exchange sensor data and commands over UART, SPI, I2C or Modbus RS-485.
+8. The standalone SerialGateway exchanges newline-delimited JSON over UART; it is not yet called by EdgePipeline. SPI, I2C and Modbus are hardware integration directions rather than supplied runtime adapters.
 9. RTSP is treated as the video transport layer and remains separate from event telemetry.
 
 ## Component boundaries
@@ -66,12 +66,6 @@ The public reference implementation includes basic camera and MQTT recovery patt
 
 ## Deployment topology
 
-Typical topology:
-
-    Camera -> Raspberry Pi / Linux Edge Computer -> MQTT Broker -> Monitoring Service
-                                      |
-                                      +-> ESP32 / STM32 -> Sensors / Relays
-                                      |
-                                      +-> RTSP video path
+The implemented path is camera input on the Linux edge computer, YOLO inference and event filtering, then MQTT event/health publication to an external broker. Monitoring subscribers are external consumers. The serial gateway and ESP32 example form a separate reference integration; RTSP output is planned.
 
 The MQTT broker may be local, site-level or remote depending on connectivity and security requirements.

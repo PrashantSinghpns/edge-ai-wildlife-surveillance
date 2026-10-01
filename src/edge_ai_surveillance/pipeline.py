@@ -24,12 +24,6 @@ class EdgePipeline:
         self.site = str(config["device"].get("site", "demo"))
 
         camera_cfg = config["camera"]
-        self.camera = CameraSource(
-            source=camera_cfg.get("source", 0),
-            width=camera_cfg.get("width"),
-            height=camera_cfg.get("height"),
-            reconnect_seconds=float(camera_cfg.get("reconnect_seconds", 2.0)),
-        )
 
         inference_cfg = config["inference"]
         self.detector = YoloDetector(
@@ -50,6 +44,12 @@ class EdgePipeline:
         self.health_interval = float(
             config.get("monitoring", {}).get("health_interval_seconds", 30.0)
         )
+        self.camera = CameraSource(
+            source=camera_cfg.get("source", 0),
+            width=camera_cfg.get("width"),
+            height=camera_cfg.get("height"),
+            reconnect_seconds=float(camera_cfg.get("reconnect_seconds", 2.0)),
+        )
         self.running = True
 
     def _stop(self, *_: object) -> None:
@@ -59,13 +59,13 @@ class EdgePipeline:
         signal.signal(signal.SIGINT, self._stop)
         signal.signal(signal.SIGTERM, self._stop)
 
-        self.mqtt.connect()
         frame_index = 0
         last_health = 0.0
 
         LOGGER.info("Edge pipeline started for device=%s", self.device_id)
 
         try:
+            self.mqtt.connect()
             while self.running:
                 frame = self.camera.read()
                 frame_index += 1
@@ -105,5 +105,7 @@ class EdgePipeline:
                     )
         finally:
             LOGGER.info("Stopping edge pipeline")
-            self.camera.close()
-            self.mqtt.close()
+            try:
+                self.camera.close()
+            finally:
+                self.mqtt.close()
