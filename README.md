@@ -35,26 +35,37 @@ Remote surveillance systems often operate with limited compute, unreliable conne
 
 ## System Architecture
 
-\`\`\`mermaid
-flowchart LR
-    CAM[Camera / Arducam] --> CAP[Video Capture]
-    CAP --> PRE[OpenCV Pre-processing]
-    PRE --> AI[YOLOv8 / Edge Inference]
-    AI --> POLICY[Event Policy + Cooldown]
-    POLICY --> EVENT[Structured Detection Event]
+The current Python pipeline runs on Raspberry Pi / Linux. It accepts a local camera, video file, or RTSP camera input, then performs inference, event filtering, and MQTT publication.
 
-    EVENT --> MQTT[MQTT Telemetry]
-    EVENT --> LOG[Local Structured Logs]
-    EVENT --> CTRL[Device / Relay Control]
+```mermaid
+flowchart TD
+    INPUT["Local camera, video file, or RTSP input"] --> CAMERA
+    CONFIG["YAML configuration"] --> CAMERA
+    CONFIG --> MODEL
+    CONFIG --> POLICY
+    CONFIG --> MQTT
 
-    MQTT --> REMOTE[Remote Monitoring]
-    CAP --> RTSP[RTSP Video Stream]
+    subgraph EDGE["Raspberry Pi / Linux edge pipeline"]
+        CAMERA["CameraSource: OpenCV capture and reconnect"]
+        CAMERA --> STRIDE["Frame stride: select frames for inference"]
+        STRIDE --> MODEL["YoloDetector: YOLOv8 inference"]
+        MODEL --> POLICY["EventPolicy: labels, confidence, cooldown"]
+        POLICY --> EVENT["DetectionEvent: JSON serialization"]
+        EVENT --> MQTT["MqttPublisher"]
+        EVENT --> LOG["Python log: label, confidence, event ID"]
+        HEALTH["Periodic host health collection"] --> MQTT
+    end
 
-    MCU[ESP32 / STM32] -->|UART / SPI / I2C / Modbus RS-485| EDGE[Raspberry Pi / Embedded Linux]
-    EDGE --> CAP
-    SENSORS[Sensors] --> MCU
-    CTRL --> RELAY[Relay / Actuator]
-\`\`\`
+    MQTT --> BROKER["MQTT broker: event and health topics"]
+    BROKER --> MONITOR["External monitoring subscriber"]
+```
+
+- **Implemented:** capture/reconnect, frame skipping, YOLO inference, label/confidence filtering, cooldown, JSON detection events, MQTT publication, periodic health telemetry, and Python logging.
+- **Reference extension:** `serial_gateway.py` provides newline-delimited JSON over UART; ESP32 example firmware demonstrates sensor/relay handling. Neither is connected to `EdgePipeline` yet.
+- **Planned extensions:** RTSP output server, command-topic handling, persistent event storage, and monitoring dashboard. RTSP camera **input** is already supported; RTSP video **output** is not implemented.
+- OpenCV acquires frames; model preprocessing is handled by the Ultralytics inference call. Local logs contain event summaries rather than a persistent copy of every JSON event.
+
+See [Architecture](docs/ARCHITECTURE.md) for component design context.
 
 ---
 
@@ -77,43 +88,34 @@ flowchart LR
 
 ## Repository Structure
 
-\`\`\`text
-.
-├── src/edge_ai_surveillance/
-│   ├── camera.py
-│   ├── config.py
-│   ├── detector.py
-│   ├── events.py
-│   ├── health.py
-│   ├── mqtt_client.py
-│   ├── policy.py
-│   ├── pipeline.py
-│   └── main.py
-├── firmware/esp32/
-│   └── sensor_node_example.cpp
-├── examples/
-│   ├── sample_event.json
-│   └── simulate_event.py
-├── config/
-│   └── config.example.yaml
-├── docs/
-│   ├── ARCHITECTURE.md
-│   ├── COMMUNICATION.md
-│   ├── DEPLOYMENT.md
-│   ├── EDGE_OPTIMIZATION.md
-│   ├── SECURITY.md
-│   └── TROUBLESHOOTING.md
-├── systemd/
-│   └── edge-ai-surveillance.service
-├── scripts/
-│   ├── install.sh
-│   └── run.sh
-├── tests/
-├── .github/workflows/ci.yml
-├── requirements.txt
-├── pyproject.toml
-└── README.md
-\`\`\`
+The paths below reflect the current repository. Runtime components live under `src/edge_ai_surveillance/`.
+
+| Path | Responsibility |
+|---|---|
+| `src/edge_ai_surveillance/main.py` | CLI entry point and pipeline startup |
+| `src/edge_ai_surveillance/config.py` | Configuration loading and validation |
+| `src/edge_ai_surveillance/pipeline.py` | Capture, frame stride, inference, events, and health orchestration |
+| `src/edge_ai_surveillance/camera.py` | OpenCV camera/video input and reconnect handling |
+| `src/edge_ai_surveillance/detector.py` | Ultralytics YOLO inference adapter |
+| `src/edge_ai_surveillance/policy.py` | Label filtering, confidence threshold, and cooldown |
+| `src/edge_ai_surveillance/events.py` | Detection event dataclass and JSON serialization |
+| `src/edge_ai_surveillance/mqtt_client.py` | MQTT event/health publication, TLS options, and Last Will |
+| `src/edge_ai_surveillance/health.py` | Host health collection |
+| `src/edge_ai_surveillance/serial_gateway.py` | Standalone UART JSON gateway; not wired into the pipeline |
+| `src/edge_ai_surveillance/__init__.py` | Python package initialization |
+| `config/config.example.yaml` | Example device, camera, inference, policy, and MQTT settings |
+| `firmware/esp32/` | Sensor/relay example firmware and its README |
+| `examples/` | Sample JSON event and telemetry simulation |
+| `models/README.md` | Model setup guidance; weights are not included |
+| `docs/` | Architecture, communication, deployment, optimization, security, and troubleshooting guides |
+| `Images/` | Project photos and screenshots |
+| `scripts/` | Installation and startup helpers |
+| `systemd/edge-ai-surveillance.service` | Linux service template |
+| `tests/` | Configuration, event serialization, and policy tests |
+| `.github/workflows/ci.yml` | Continuous integration workflow |
+| `.env.example`, `.gitignore` | Environment-variable reference and ignore rules |
+| `pyproject.toml`, `requirements.txt` | Package metadata and dependencies |
+| `CONTRIBUTING.md`, `LICENSE`, `README.md` | Contribution guidance, license, and project overview |
 
 ---
 
@@ -121,46 +123,46 @@ flowchart LR
 
 ### 1. Clone
 
-\`\`\`bash
+```bash
 git clone https://github.com/PrashantSinghpns/edge-ai-wildlife-surveillance.git
 cd edge-ai-wildlife-surveillance
-\`\`\`
+```
 
 ### 2. Create a virtual environment
 
-\`\`\`bash
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
-\`\`\`
+```
 
 ### 3. Configure
 
-\`\`\`bash
+```bash
 cp config/config.example.yaml config/config.yaml
-\`\`\`
+```
 
-Update camera source, MQTT broker, detection labels and model settings in \`config/config.yaml\`.
+Update camera source, MQTT broker, detection labels and model settings in `config/config.yaml`.
 
 ### 4. Run a telemetry-only simulation
 
-\`\`\`bash
+```bash
 python examples/simulate_event.py
-\`\`\`
+```
 
 ### 5. Run the Edge AI pipeline
 
-\`\`\`bash
+```bash
 python -m edge_ai_surveillance.main --config config/config.yaml
-\`\`\`
+```
 
 For an RTSP camera, set:
 
-\`\`\`yaml
+```yaml
 camera:
   source: "rtsp://USER:PASSWORD@CAMERA_IP:554/stream"
-\`\`\`
+```
 
 Never commit real credentials. Prefer environment variables or a local untracked configuration file.
 
@@ -168,32 +170,47 @@ Never commit real credentials. Prefer environment variables or a local untracked
 
 ## Detection Event Schema
 
-The pipeline publishes normalized JSON events so the AI model is decoupled from downstream monitoring systems.
+Each detection accepted by `EventPolicy` becomes one `DetectionEvent` and is serialized as a JSON object. This example matches the fields emitted by `pipeline.py`:
 
-\`\`\`json
+```json
 {
   "event_id": "7f3cb870-5ad7-45e6-91e8-2f512bf2d3cf",
   "timestamp": "2026-09-30T12:00:00+00:00",
   "source": "edge-camera-01",
-  "label": "animal",
+  "label": "dog",
   "confidence": 0.92,
   "bbox": [104.0, 88.0, 322.0, 360.0],
   "metadata": {
     "site": "demo",
-    "pipeline": "yolov8"
+    "pipeline": "yolov8",
+    "frame_index": 120
   }
 }
-\`\`\`
+```
 
-Default topic convention:
+| Field | JSON type | Meaning |
+|---|---|---|
+| `event_id` | string | UUID v4 generated for the event |
+| `timestamp` | string | UTC ISO 8601 event-creation time, including the timezone offset |
+| `source` | string | Device identifier from `device.id` |
+| `label` | string | Class name returned by the loaded model |
+| `confidence` | number | Detector confidence score, normally between 0 and 1 |
+| `bbox` | array of four numbers | `[x_min, y_min, x_max, y_max]` in pixels relative to the frame passed to inference |
+| `metadata` | object | Context; the pipeline adds `site`, `pipeline`, and `frame_index` |
 
-\`\`\`text
-edge/<device_id>/events
-edge/<device_id>/health
-edge/<device_id>/commands
-\`\`\`
+`frame_index` counts captured frames, including frames skipped by the configured inference stride. The event class defaults `metadata` to an empty object and generates `event_id` and `timestamp` when omitted. It serializes the supplied values; it does not enforce field types, confidence bounds, or bounding-box validity.
 
-See [Communication Design](docs/COMMUNICATION.md).
+The default `yolov8n.pt` model uses its trained class names, such as `dog`; a generic `animal` label or species-specific wildlife labels require an appropriate model or an explicit mapping.
+
+| MQTT topic | Status and payload |
+|---|---|
+| `edge/<device_id>/events` | Implemented: one detection JSON object per publication, configured QoS, `retain=False` |
+| `edge/<device_id>/health` | Implemented: host health telemetry plus online/offline status messages and Last Will |
+| `edge/<device_id>/commands` | Proposed convention; command subscription and dispatch are not implemented |
+
+Health/status messages have a different payload from detection events. Consumers should subscribe and parse them separately.
+
+See [Communication Design](docs/COMMUNICATION.md) and [Sample Event](examples/sample_event.json). The sample file demonstrates the base event fields; the live pipeline additionally includes `metadata.frame_index`.
 
 ---
 
@@ -244,7 +261,7 @@ A deployable edge system needs more than model inference. The architecture inclu
 - Event throttling / cooldown
 - Configuration-driven behavior
 - Graceful shutdown
-- Linux \`systemd\` service execution
+- Linux `systemd` service execution
 - Offline-friendly local event generation
 - Network and serial troubleshooting
 
@@ -271,9 +288,9 @@ See [Security](docs/SECURITY.md).
 
 ## Testing
 
-\`\`\`bash
+```bash
 pytest -q
-\`\`\`
+```
 
 The test suite focuses on deterministic components such as configuration parsing, event serialization and policy behavior. Hardware, camera and model tests should be separated as integration tests on target devices.
 
